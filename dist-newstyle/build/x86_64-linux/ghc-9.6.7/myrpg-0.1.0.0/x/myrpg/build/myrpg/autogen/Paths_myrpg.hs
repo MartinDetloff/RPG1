@@ -46,12 +46,12 @@ getBinDir, getLibDir, getDynLibDir, getDataDir, getLibexecDir, getSysconfDir :: 
 
 
 bindir, libdir, dynlibdir, datadir, libexecdir, sysconfdir :: FilePath
-bindir     = "/home/mart/.cabal/bin"
-libdir     = "/home/mart/.cabal/lib/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0-inplace-myrpg"
-dynlibdir  = "/home/mart/.cabal/lib/x86_64-linux-ghc-9.6.7"
-datadir    = "/home/mart/.cabal/share/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0"
-libexecdir = "/home/mart/.cabal/libexec/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0"
-sysconfdir = "/home/mart/.cabal/etc"
+bindir     = "/home/martindetloff/.cabal/bin"
+libdir     = "/home/martindetloff/.cabal/lib/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0-inplace-myrpg"
+dynlibdir  = "/home/martindetloff/.cabal/lib/x86_64-linux-ghc-9.6.7"
+datadir    = "/home/martindetloff/.cabal/share/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0"
+libexecdir = "/home/martindetloff/.cabal/libexec/x86_64-linux-ghc-9.6.7/myrpg-0.1.0.0"
+sysconfdir = "/home/martindetloff/.cabal/etc"
 
 getBinDir     = catchIO (getEnv "myrpg_bindir")     (\_ -> return bindir)
 getLibDir     = catchIO (getEnv "myrpg_libdir")     (\_ -> return libdir)

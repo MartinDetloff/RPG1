@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://cloudconvert.com/
+HostUrl=https://us-east.storage.cloudconvert.com/tasks/12e57852-974c-4efa-b878-85b2eb96ede0/knight.bmp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20250430%2Fva%2Fs3%2Faws4_request&X-Amz-Date=20250430T232336Z&X-Amz-Expires=86400&X-Amz-Signature=901c64a35a3932c4f4623542ea15400f0d72bcfc69be7fec16acdecd02810316&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22knight.bmp%22&response-content-type=image%2Fbmp&x-id=GetObject
