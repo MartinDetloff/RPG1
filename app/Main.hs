@@ -25,38 +25,53 @@ data WorldState = WorldState {
     , spriteFrames :: Picture
     , zombieSpriteIndex :: Int
     , zombiePic :: [Picture]
+    , background :: Picture
 }
 
 data WindowDimensions = Window {
-    width :: Int
-    ,height :: Int
+    width :: Float
+    ,height :: Float
+}
+
+data Weapons = W {
+    closeAttack :: Bool 
+    ,rangedAttack :: Bool
 }
 
 
 handleInput :: Event -> WorldState ->  WorldState
-handleInput (EventKey (SpecialKey KeyUp) Down _ _) (WorldState (x,y) clr radius b c enimies window timeAcc frames i z)  =
+handleInput (EventKey (SpecialKey KeyUp) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background)  =
     -- do
         -- let newEnimies = 
         -- putStrLn "Up Key Pressed"
-    (WorldState (x, y+25) clr radius b c enimies window timeAcc frames i z)
 
-handleInput (EventKey (SpecialKey KeyDown) Down _ _) (WorldState (x,y) clr radius b c enimies window timeAcc frames i z) =
+    if y + 25 < (h / 2)
+    then (WorldState (x, y+25) clr radius b c enimies (Window w h) timeAcc frames i z background)
+    else (WorldState (x, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
+
+handleInput (EventKey (SpecialKey KeyDown) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background) =
     --   do
     --     -- let newEnimies = 
     --     putStrLn "Down Key Pressed"
-    (WorldState (x, y-25) clr radius b c enimies window timeAcc frames i z)
+    if y - 25 > (-1 * (h / 2))
+    then (WorldState (x, y-25) clr radius b c enimies (Window w h) timeAcc frames i z background)
+    else (WorldState (x, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
 
-handleInput (EventKey (SpecialKey KeyLeft) Down _ _) (WorldState (x,y) clr radius b c enimies window timeAcc frames i z) =
+handleInput (EventKey (SpecialKey KeyLeft) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background) =
     --   do
     --     -- let newEnimies = 
     --     putStrLn "Left Key Pressed"
-    (WorldState (x-25, y) clr radius b c enimies window timeAcc frames i z)
+    if x - 25 > (-1 * ( w / 2))
+    then (WorldState (x-25, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
+    else (WorldState (x, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
 
-handleInput (EventKey (SpecialKey KeyRight) Down _ _) (WorldState (x,y) clr radius b c enimies window timeAcc frames i z) =
+handleInput (EventKey (SpecialKey KeyRight) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background) =
     --   do
     --     -- let newEnimies = 
     --     putStrLn "Right Key Pressed"
-    (WorldState (x+25, y) clr radius b c enimies window timeAcc frames i z)
+    if x + 25 < (w / 2)
+    then (WorldState (x+25, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
+    else (WorldState (x, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
 
 -- handleInput (EventKey (MouseButton LeftButton) Down _ _) (WorldState (x,y) clr radius b c enimies window) = 
 --     do  
@@ -64,8 +79,8 @@ handleInput (EventKey (SpecialKey KeyRight) Down _ _) (WorldState (x,y) clr radi
 --         newEnimies <- spawnNewEnemy (checkIfEnimiesClose enimies (x,y)) window 
 --         (WorldState (x,y) clr radius b c newEnimies window)
 
-handleInput _ (WorldState (x,y) clr radius b c enimies window timeAcc frames i z) =   
-    (WorldState (x, y) clr radius b c enimies window timeAcc frames i z)
+handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background) =   
+    (WorldState (x, y) clr radius b c enimies (Window w h) timeAcc frames i z background)
 
 
 checkIfEnimiesClose :: [(Float, Float)] -> (Float, Float) -> [(Float, Float)]
@@ -87,16 +102,16 @@ checkIfEnimiesClose enimies (px,py) = [(ex, ey) | (ex, ey) <- enimies, sqrt (((e
 
 
 drawWorld :: WorldState ->  Picture
-drawWorld (WorldState (x,y) clr radius _ _ enimies w timeAcc img i z) = 
+drawWorld (WorldState (x,y) clr radius _ _ enimies w timeAcc img i z b) = 
     let currentZombieFrame = z !! (i `mod` length z)
-    in (Pictures (Translate x y (Scale 0.5 0.5 img) : 
+    in (Pictures (b : Translate x y (Scale 0.75 0.75 img) :
     [ Color red (Translate ex ey (Scale 0.5 0.5 currentZombieFrame)) | (ex,ey) <- enimies]))
 
 -- updateGame :: ViewPort -> Float -> WorldState -> IO WorldState
 -- updateGame _ _ world =  return (moveWorld world)
 
 tempFun :: Float -> WorldState -> WorldState
-tempFun steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z) = 
+tempFun steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background) = 
     
     let newTime = (steps + timeAcc)
         (newInx, resetTime) = if newTime >= 0.1
@@ -104,17 +119,19 @@ tempFun steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z
                               else (i, newTime) 
 
         newEnimies = moveEnimiesCloser enimies (x,y)
-    in WorldState (x,y) clr radius b c newEnimies window resetTime frames newInx z
+    in WorldState (x,y) clr radius b c newEnimies window resetTime frames newInx z background
 
 
 -- Function to move the enimies a little bit closer to the player 
 moveEnimiesCloser :: [(Float, Float)] -> (Float, Float) -> [(Float, Float)] 
 moveEnimiesCloser enimies (playerX, playerY) = 
 
-    [(ex + dx, ey + dy) | (ex, ey) <- enimies,
-     let dx = (playerX - ex) / 500, 
-     let dy = (playerY - ey) / 500 ]
+    [if sqrt ((playerX - ex)^2   + (playerY - ey)^2) > 50 then (ex + dx, ey + dy) else (ex, ey)| (ex, ey) <- enimies,
+     let dx = (playerX - ex) / 100, 
+     let dy = (playerY - ey) / 100]
 
+-- checkZombieCloseNess :: (Float, Float) -> [(Float, Float)] -> Bool
+-- checkZombieCloseNess (zombieX, zombieY) allZombies = and [ if sqrt ((playerX - ex)^2   + (playerY - ey)^2) > 50 then (ex + dx, ey + dy) else (ex, ey) | (ex, ey) <- allZombies, (ex - (zombieX)) + (ey - (zombieY)) /= 0]
 
 loadInZombieFrames :: IO [Picture]
 loadInZombieFrames = sequence [loadBMP ("assets/zombie" ++ show x ++ ".bmp") | x <- [1..8]]
@@ -124,7 +141,8 @@ main :: IO ()
 main = do
     mainCharacter <- loadBMP "assets/knight.bmp"
     z <- loadInZombieFrames
-    let initialWorld =  WorldState (0, 0) green 20  False 0 [(50,50), (100,100), (-50, -50), (-100, -100)] (Window 500 500) 0 mainCharacter 0 z
+    spaceBack <- loadBMP "assets/spaceBack.bmp"
+    let initialWorld =  WorldState (0, 0) green 20  False 0 [(50,50), (100,100), (-50, -50), (-100, -100)] (Window 500 500) 0 mainCharacter 0 z spaceBack
     play 
         (InWindow "RPG" (500, 500) (100, 100) )
         black
