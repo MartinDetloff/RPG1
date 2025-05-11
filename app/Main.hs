@@ -6,13 +6,13 @@
 module Main where
 
 import Brillo
-import Brillo.Interface.IO.Interact (interactIO, Event (EventKey), SpecialKey (KeyUp, KeyDown, KeyLeft, KeyRight, KeySpace), KeyState (Down, Up), Modifiers (shift), Key (SpecialKey, Char), MouseButton (LeftButton))
+import Brillo.Interface.IO.Interact (interactIO, Event (EventKey), SpecialKey (KeyUp, KeyDown, KeyLeft, KeyRight, KeySpace, KeyEnter, KeyAltL, KeyBackspace, KeyCtrlL), KeyState (Down, Up), Modifiers (shift), Key (SpecialKey, Char), MouseButton (LeftButton))
 import Control.Exception (handle)
 import Brillo.Data.ViewPort (ViewPort)
 import Control.Concurrent (threadDelay)
 import Control.Monad (forever)
 import Brillo.Interface.IO.Simulate (simulateIO)
-import Brillo.Interface.IO.Game (Key(MouseButton))
+import Brillo.Interface.IO.Game (Key(MouseButton), SpecialKey (..))
 import System.Random (randomRIO)
 import Brillo.Geometry.Angle (radToDeg)
 -- import Math
@@ -29,7 +29,7 @@ data WorldState = WorldState {
     , spriteFrames :: [Picture]
     , zombieSpriteIndex :: Int
     , zombiePic :: [Picture]
-    , background :: Picture
+    , backgrounds :: [Picture]
     , keysHeld :: KeysHeld
     , directionFacing :: Direction
     , healthPoints :: Health
@@ -41,6 +41,11 @@ data WorldState = WorldState {
     , gameOverPicture :: Picture
     , hotbar :: HotBar
     , zombieAttackFrames :: [Picture]
+    , screenState :: ScreenState
+    , knightInfo :: KnightInformation
+    , bulletImage :: Picture
+    , zombieBones :: [Bullet]
+    , score :: Int
 
 }
 
@@ -61,7 +66,7 @@ data Direction = Dir {
     , south :: Bool
     , east :: Bool
     , west :: Bool
-}
+} deriving (Eq)
 
 data Weapons = W {
     closeAttack :: Bool,
@@ -81,6 +86,7 @@ data Health = HP{
 data Bullet = B {
     velocity :: (Float, Float),
     position :: (Float, Float),
+    direction :: Direction,
     damage :: Int
 } deriving (Eq)
 
@@ -90,7 +96,9 @@ data Zombie = Z {
     zAttackTimer :: Float,
     -- zombieMoveFrames :: [Picture],
     zombieAttackingFramesIndex :: Int,
-    zombieHP :: Int
+    zombieHP :: Int,
+    isBossZombie :: Bool,
+    isRangedZombie :: Bool
 } deriving (Eq)
 
 data Levels = L {
@@ -105,344 +113,127 @@ data HotBar = H {
     hotBarIndex :: Int
 }
 
+data ScreenState = Screen {
+    mainMenu :: Bool,
+    playingEndlessScreen :: Bool,
+    playingStoryScreen :: Bool,
+    endOfStoryScreen :: Bool
+}
+
+data KnightInformation = Knight {
+    knightAttackFrames :: [Picture],
+    knightIsAttacking :: Bool,
+    knightAttackTimer :: Float,
+    knightAttackFrameIndex :: Int
+}
+
+spawnNewEnemies :: Int -> [Zombie]
+spawnNewEnemies x = case x of
+        1 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False},
+              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False},
+              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False}]
+
+        2 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False },
+              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False },
+              Z{zPos =(-275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False}]
+
+        3 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(-275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False}]
+        
+        4 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False},
+              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 25, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = False},
+              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False}]
+
+        
+
 handleInput :: Event -> WorldState ->  WorldState
--- case for if you press down the up key 
-handleInput (EventKey (SpecialKey KeyUp) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
 
-    if y + 25 < (h / 2)
+-- you want to choose the endless mode
+handleInput (EventKey (Char 'e') Down _ _) worldState = 
+                worldState {screenState = (screenState worldState) {mainMenu = False, playingEndlessScreen = True, playingStoryScreen = False}}
+-- you want to choose the storyMode
+handleInput (EventKey (Char 's') Down _ _) worldState =
+    worldState {screenState = (screenState worldState) {mainMenu = False, playingEndlessScreen = False, playingStoryScreen = True}}
 
+-- case where you press up key
+handleInput (EventKey (SpecialKey KeyUp) Down _ _) worldState =
+
+    if snd (circlePos worldState) + 25 < (height (window (worldState))  / 2)
     then
-        WorldState
-            (x, y+25)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            k {isUpHeld = True}
-            dir {north = True, south = False, east = False, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
+        worldState {circlePos = (fst (circlePos worldState) + 0, snd (circlePos worldState) + 25),
+                    keysHeld = (keysHeld worldState) {isUpHeld = True, isDownHeld = False, isLeftHeld = False, isRightHeld = False}, 
+                    directionFacing = (directionFacing worldState) {north = True, south = False, east = False, west = False}
+                    }
     else
-        WorldState
-            (x, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            k
-            dir {north = True, south = False, east = False, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
+        worldState { directionFacing = (directionFacing worldState) {north = True, south = False, east = False, west = False}}
 
 -- Case for if you let go of the upkey
-handleInput (EventKey (SpecialKey KeyUp) Up _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf)  =
+handleInput (EventKey (SpecialKey KeyUp) Up _ _) worldState =
+    worldState {keysHeld = (keysHeld worldState) {isUpHeld = False}}
+   
+        
 
-    WorldState
-        (x, y)
-        clr
-        radius
-        b
-        c
-        enimies
-        (Window w h)
-        timeAcc
-        frames
-        i
-        z
-        background
-        k {isUpHeld = False}
-        dir
-        health
-        psi
-        cw
-        lvls
-        levelIndex
-        isGameOver
-        gameOverPic
-        hb
-        zaf
+-- case where you press down key
+handleInput (EventKey (SpecialKey KeyDown) Down _ _) worldState =
 
-handleInput (EventKey (SpecialKey KeyDown) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
-
-    if y - 25 > (- (1 * (h / 2)))
+    if snd (circlePos worldState) - 25 > - (1 * (height (window (worldState)) / 2))
     then
-        WorldState
-            (x, y-25)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            (k {isDownHeld = True})
-            dir {north = False, south = True, east = False, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
+        worldState {circlePos = (fst (circlePos worldState) + 0, snd (circlePos worldState) - 25),
+                    keysHeld = (keysHeld worldState) {isDownHeld = True, isUpHeld = False, isLeftHeld = False, isRightHeld = False}, 
+                    directionFacing = (directionFacing worldState) {north = False, south = True, east = False, west = False}
+                    }
     else
-        WorldState
-            (x, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            k
-            dir {north = False, south = True, east = False, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
+        worldState { directionFacing = (directionFacing worldState) {north = False, south = True, east = False, west = False}}
 
 -- Case for if you let go of the downKey
-handleInput (EventKey (SpecialKey KeyDown) Up _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf)  =
-    WorldState
-        (x, y)
-        clr
-        radius
-        b
-        c
-        enimies
-        (Window w h)
-        timeAcc
-        frames
-        i
-        z
-        background
-        k {isDownHeld = False}
-        dir
-        health
-        psi
-        cw
-        lvls
-        levelIndex
-        isGameOver
-        gameOverPic
-        hb
-        zaf
+handleInput (EventKey (SpecialKey KeyDown) Up _ _) worldState =
+    worldState {keysHeld = (keysHeld worldState) {isDownHeld = False}}
 
--- Case for if you press the left Key
-handleInput (EventKey (SpecialKey KeyLeft) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
+-- case where you press left key
+handleInput (EventKey (SpecialKey KeyLeft) Down _ _) worldState =
 
-    if x - 25 > (- (1 * (w / 2)))
+    if fst (circlePos worldState) - 25 > - (1 * (width (window (worldState)) / 2))
     then
-        WorldState
-            (x-25, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            (k {isLeftHeld = True})
-            dir {north = False, south = False, east = False, west = True}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
+        worldState {circlePos = (fst (circlePos worldState) - 25, snd (circlePos worldState)),
+                    keysHeld = (keysHeld worldState) {isDownHeld = False, isUpHeld = False, isLeftHeld = True, isRightHeld = False}, 
+                    directionFacing = (directionFacing worldState) {north = False, south = False, east = False, west = True}
+                    }
     else
-        WorldState
-            (x, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            k
-            dir {north = False, south = False, east = False, west = True}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
+        worldState { directionFacing = (directionFacing worldState) {north = False, south = False, east = False, west = True}}
+        
+-- Case for if you let go of the leftKey
+handleInput (EventKey (SpecialKey KeyLeft) Up _ _) worldState =
+    worldState {keysHeld = (keysHeld worldState) {isLeftHeld = False}}
+
+
+-- case where you press right key
+handleInput (EventKey (SpecialKey KeyRight) Down _ _) worldState =
+
+    if fst (circlePos worldState) + 25 < (width (window (worldState)) / 2)
+    then
+        worldState {circlePos = (fst (circlePos worldState) + 25, snd (circlePos worldState)),
+                    keysHeld = (keysHeld worldState) {isDownHeld = False, isUpHeld = False, isLeftHeld = False, isRightHeld = True}, 
+                    directionFacing = (directionFacing worldState) {north = False, south = False, east = True, west = False}
+                    }
+    else
+        worldState { directionFacing = (directionFacing worldState) {north = False, south = False, east = True, west = False}}
 
 -- Case for if you let go of the leftKey
-handleInput (EventKey (SpecialKey KeyLeft) Up _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf)  =
-    WorldState
-        (x, y)
-        clr
-        radius
-        b
-        c
-        enimies
-        (Window w h)
-        timeAcc
-        frames
-        i
-        z
-        background
-        k {isLeftHeld = False}
-        dir
-        health
-        psi
-        cw
-        lvls
-        levelIndex
-        isGameOver
-        gameOverPic
-        hb
-        zaf
--- Case for if you press the rightKey
-handleInput (EventKey (SpecialKey KeyRight) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
-
-    if x + 25 < (w / 2)
-    then
-        WorldState
-            (x+25, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            (k {isRightHeld = True})
-            dir {north = False, south = False, east = True, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
-    else
-        WorldState
-            (x, y)
-            clr
-            radius
-            b
-            c
-            enimies
-            (Window w h)
-            timeAcc
-            frames
-            i
-            z
-            background
-            k
-            dir {north = False, south = False, east = True, west = False}
-            health
-            psi
-            cw
-            lvls
-            levelIndex
-            isGameOver
-            gameOverPic
-            hb
-            zaf
-
+handleInput (EventKey (SpecialKey KeyRight) Up _ _) worldState =
+    worldState {keysHeld = (keysHeld worldState) {isRightHeld = False}}
 
 -- Case for if you let go of the rightKey
-handleInput (EventKey (SpecialKey KeyRight) Up _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf)  =
-    WorldState
-        (x, y)
-        clr
-        radius
-        b
-        c
-        enimies
-        (Window w h)
-        timeAcc
-        frames
-        i
-        z
-        background
-        k
-        {isRightHeld = False}
-        dir
-        health
-        psi
-        cw
-        lvls
-        levelIndex
-        isGameOver
-        gameOverPic
-        hb
-        zaf
-
--- Case for if you let go of the rightKey
-handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver gameOverPic hb zaf)  =
+handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score)  =
 
     let newBullets = if rangedAttack
                      then spawnNewBullets bullets (x,y) dir
@@ -455,6 +246,10 @@ handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radi
         newNumOfBullets = if ((length newBullets) > length bullets)
                           then (length bullets) - 1
                           else length bullets
+
+        newKnightInfo = if closeAttack
+                        then knightInfo {knightIsAttacking = True, knightAttackTimer = 1.3}
+                        else knightInfo
 
     in WorldState
         (x, y)
@@ -480,36 +275,20 @@ handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radi
         gameOverPic
         hb
         zaf
+        screenState
+        newKnightInfo
+        bulletImage
+        zombieBones
+        score
 
 
-handleInput (EventKey (Char '1') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
 
-    WorldState
-        (x, y)
-        clr
-        radius
-        b
-        c
-        enimies
-        (Window w h)
-        timeAcc
-        frames
-        i
-        z
-        background
-        kh
-        dir
-        health
-        psi
-        cw {rangedAttack = False, closeAttack = True}
-        lvls
-        levelIndex
-        isGameOver
-        gameOverPic
-        hb {hotBarIndex = 0}
-        zaf
+handleInput (EventKey (Char '1') Down _ _) worldState =
+    worldState {currentWeapons = (currentWeapons worldState) {rangedAttack = False, closeAttack = True},
+            hotbar = (hotbar worldState) {hotBarIndex = 0}}
 
-handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
+
+handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score) =
 
     WorldState
         (x, y)
@@ -535,8 +314,13 @@ handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enim
         gameOverPic
         hb {hotBarIndex = 1}
         zaf
+        screenState
+        knightInfo
+        bulletImage
+        zombieBones
+        score
 
-handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf) =
+handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score) =
     WorldState
         (x, y)
         clr
@@ -561,6 +345,11 @@ handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc fram
         gameOverPic
         hb
         zaf
+        screenState
+        knightInfo
+        bulletImage
+        zombieBones
+        score
 
 
 -- shootBullet :: Direction -> (Float, Float) -> [Bullet] -> 
@@ -574,44 +363,41 @@ distance (x1, y1) (x2, y2) = sqrt ((x2- x1)^2 + (y2-y1)^2)
 -- function to check if the enemies were killed and return a new list of enemies 
 checkIfEnimiesWereKilled :: (Float, Float) -> [Zombie] -> Direction -> [Zombie]
 checkIfEnimiesWereKilled (px, py) zombies dir =
-    [z | z <- zombies,
-    let (ex, ey) = zPos z
-    , checkIfLiveOrDead
-        (ex, ey)
+    [if checkIfLiveOrDead (ex, ey) z
         (px, py)
         (px + findChangeInXBasedUponDir dir)
         (py + findChangeInYBasedUponDir dir)
-        dir
+        dir then z {zombieHP = zombieHP z - 1} else z| z <- zombies,
+    let (ex, ey) = zPos z
     ]
 
 -- helper to find the change in X 
 findChangeInXBasedUponDir :: Direction -> Float
 findChangeInXBasedUponDir (Dir _ _ east west)
-        | east = 50
-        | west = -50
+        | east = 100
+        | west = -100
         | otherwise = 0
 
 -- helper to find the change in Y 
 findChangeInYBasedUponDir :: Direction -> Float
 findChangeInYBasedUponDir (Dir north south _ _)
-        | north = 50
-        | south = -50
+        | north = 100
+        | south = -100
         | otherwise = 0
 
 -- function to return true if the zombie lives and false if the zombie dies 
-checkIfLiveOrDead :: (Float, Float) -> (Float, Float) -> Float -> Float -> Direction -> Bool
-checkIfLiveOrDead (ex, ey) (px, py) maxX maxY (Dir north south east west)
-        | north && (ey < maxY && ey > py) = False
-        | south && (ey > maxY && ey < py) = False
-        | west && (ex > maxX && ex < px) = False
-        | east && (ex < maxX && ex > px) = False
-        | otherwise = True
-
+checkIfLiveOrDead :: (Float, Float) -> Zombie -> (Float, Float) -> Float -> Float -> Direction -> Bool
+checkIfLiveOrDead (ex, ey) z (px, py) maxX maxY (Dir north south east west)
+        | north && (ey < maxY && ey > py) && (ex < px + 100)   = True
+        | south && (ey > maxY && ey < py) && (ex < px + 100)   = True
+        | west && (ex > maxX && ex < px) && (ey < py + 100 )    = True
+        | east && (ex < maxX && ex > px) && (ey < py + 100 )    = True
+        | otherwise = False
 
 -- function to spawn in a new bullet
 spawnNewBullets :: [Bullet] -> (Float, Float) -> Direction -> [Bullet]
 spawnNewBullets bullets (x, y) direction =
-    B {velocity = makeVelocityBasedUponDirection direction, position = (x,y), damage = 1} : bullets
+    B {velocity = makeVelocityBasedUponDirection direction, position = (x,y), damage = 1, direction = direction} : bullets
 
 -- function to get velocity based upon a direction
 makeVelocityBasedUponDirection :: Direction -> (Float, Float)
@@ -630,27 +416,54 @@ makeVelocityBasedUponDirection (Dir north south east west)
 -- up = 180
 
 drawWorld :: WorldState ->  Picture
-drawWorld (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf) =
+drawWorld worldState =
+    case (mainMenu (screenState worldState), playingEndlessScreen (screenState worldState)) of
+            (True, _) -> drawMainMenu worldState
+            (False, True) -> drawPlayingEndlessScreen worldState
+            (False, False) -> drawPlayingEndlessScreen worldState
+
+
+
+
+
+drawMainMenu :: WorldState -> Picture
+drawMainMenu (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score) =
+    Pictures [Scale 2.5 1.5 (b !! 1)]
+
+
+
+drawPlayingEndlessScreen :: WorldState -> Picture
+drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score) =
+
     let currentZombieFrame = z !! (i `mod` length z)
         currentPlayerFrame = playerFrames !! (psi `mod` length playerFrames)
         angle2Rotate = getRotateBasedUponDir dir
         currentGameOver = if isGameOver then gameOverPic else Circle 0
+        currentPlayerFrame2 = if knightIsAttacking knightInfo
+                              then knightAttackFrames knightInfo !! knightAttackFrameIndex knightInfo
+                              else currentPlayerFrame
+        currentBackGround = if playingEndlessScreen screenState
+                            then Scale 2.5 1.5 (b !! 0)
+                            else Scale 1.75 1 (b !! (levelIndex + 1))
 
-    in Pictures (Scale 1.5 1.5 b :
-    Translate x y (Rotate angle2Rotate currentPlayerFrame) :
+    in Pictures (currentBackGround :
+    Translate x y (Rotate angle2Rotate currentPlayerFrame2) :
     [ let angle = angle2Player (x,y) (ex, ey)
           currentZombieFrame2 = if attacking then zaf !! (zombieAttackingFramesIndex z `mod` length zaf) else currentZombieFrame
-    in Color red (Translate ex ey (Rotate (radToDeg ((-1 * angle)) + 90) (currentZombieFrame2))) | z <- enimies, let (ex,ey) = zPos z, let attacking = isAttacking z] ++
-    [if (heartsThere !! indx) then  (Translate (fst pos) (snd pos) (Scale 1.5 1.5 (pics !! 1))) else Translate (fst pos) (snd pos) (Scale 1.5 1.5 (pics !! 0)) | (indx, pos) <- zip [0..] hposs] ++
-    drawBullets bullets ++
+          in Color red (Translate ex ey (Rotate (radToDeg ((-1 * angle)) + 90) (if isBoss then Scale 2.0 2.0 currentZombieFrame2 else currentZombieFrame2))) | 
+          z <- enimies, let (ex,ey) = zPos z, let attacking = isAttacking z, let isBoss = isBossZombie z] ++
+
+    [if heartsThere !! indx
+     then  uncurry Translate pos (Scale 1.5 1.5 (pics !! 1))
+     else uncurry Translate pos (Scale 1.5 1.5 (head pics))
+     | (indx, pos) <- zip [0..] hposs] ++
+    drawBullets bullets bulletImage ++
     drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
-     [Translate 0 0 currentGameOver])
+    [Translate 0 0 currentGameOver])
 
-
-
-drawBullets :: [Bullet] -> [Picture]
-drawBullets bullets =  [Color black (Translate x y (Circle 10)) | b <- bullets,
+drawBullets :: [Bullet] -> Picture -> [Picture]
+drawBullets bullets bulletImage =  [Color black (translate x y (Rotate (getRotateBasedUponDir (direction b) + 180) (bulletImage))) | b <- bullets,
                           let (x,y) = position b]
 
 
@@ -670,12 +483,22 @@ getRotateBasedUponDir (Dir north south east west)
 
 
 tempFun :: Float -> WorldState -> WorldState
-tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf)
+tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score)
 
     | health <= 0 = world {isGameOver = True}
     | isGameOver = world
     | otherwise =
 
+    case (mainMenu (screenState), playingEndlessScreen (screenState)) of
+        (False, True) ->
+            updateWorldState4Endless steps world
+        (True, False) ->
+            (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score)
+        (False, False) ->
+            updateWorldState4Story steps world
+
+updateWorldState4Endless :: Float -> WorldState -> WorldState
+updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score) =
     let newTime = (steps + timeAcc)
         (newInx, resetTime) = if newTime >= 0.5
                               then ((i + 1), 0)
@@ -689,18 +512,37 @@ tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc fram
                                              then (1, 0)
                                              else (0, newTime)
         updateZombies =
-            [ if z `elem` attackingZombies
-              then z {isAttacking = True, zAttackTimer = 0.5, zombieAttackingFramesIndex = zombieAttackingFramesIndex z + newZombieIndex}
-              else
-                let newTimer = max 0 (zAttackTimer z - steps)
-                in z {isAttacking = newTimer > 0, zAttackTimer = resetZombieTimer, zombieAttackingFramesIndex = 0}
-                | z <- newEnimies ]
+                    [ if z `elem` attackingZombies
+                    then z {isAttacking = True, zAttackTimer = 0.5, zombieAttackingFramesIndex = zombieAttackingFramesIndex z + newZombieIndex}
+                    else
+                        let newTimer = max 0 (zAttackTimer z - steps)
+                        in z {isAttacking = newTimer > 0, zAttackTimer = resetZombieTimer, zombieAttackingFramesIndex = 0}
+                        | z <- newEnimies ]
+
+
+        (newKnightIndex, resetKnightTimer) = if newTime >= 1
+                                             then (1, 0)
+                                             else (0, newTime)
+        updateKnightAttacking =
+            if knightIsAttacking (knightInfo)
+            then
+                let newTimer = max 0.0 (knightAttackTimer knightInfo - steps)
+                    stillAttacking = newTimer > 0
+                    totalAttackDuration = 1.3
+                    frameDuration = totalAttackDuration / fromIntegral (length (knightAttackFrames knightInfo))
+                    elapsed = totalAttackDuration - newTimer
+
+                    frame = floor (elapsed / frameDuration)
+                    newIndex = if stillAttacking then frame else 0
+                in knightInfo {knightIsAttacking = stillAttacking, knightAttackTimer = resetKnightTimer, knightAttackFrameIndex = newIndex }
+            else
+                knightInfo
 
 
         newHp =
-            if newTime >= 0.5
-            then health - length (getAttackingZombies enimies (x, y))
-            else health
+                    if newTime >= 0.5
+                    then health - length (getAttackingZombies enimies (x, y))
+                    else health
 
         newGameOverState = newHp == 0
 
@@ -708,13 +550,13 @@ tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc fram
         level = lvls !! levelIndex
         newSpawnT = spawnT level + steps
         (newEnimiesP2, resetSpawnT) =
-            if newSpawnT >= levelInterval level
-            then (Z{zPos =(500, -500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0} : updateZombies, 0)
-            else (updateZombies, newSpawnT)
+                    if newSpawnT >= levelInterval level
+                    then (Z{zPos =(1000, -500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False} : updateZombies, 0)
+                    else (updateZombies, newSpawnT)
 
         updatedLevel = level {
-            spawnT = resetSpawnT
-        }
+                    spawnT = resetSpawnT
+                }
 
         newLevels = updateLevels lvls levelIndex updatedLevel
 
@@ -727,30 +569,140 @@ tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc fram
         newAllHeartPictures = updateAllHeartPics allheartPictures heartsThere pics
 
 
-    in WorldState
-        newCharacterPos
-        clr
-        radius
-        b
-        c
-        newZombiesList
-        window
-        resetTime
-        frames
-        newInx
-        z
-        background
-        kh
-        dir
-        HP {health = newHp, heartPositions = hposs, heartPictures = pics, heartIsThere = newHeartsThere, allheartPictures = newAllHeartPictures}
-        newInx
-        cw {bullets = newBulletsList}
-        newLevels
-        levelIndex
-        newGameOverState
-        gameOverPic
-        hb
-        zaf
+            in WorldState
+                newCharacterPos
+                clr
+                radius
+                b
+                c
+                newZombiesList
+                window
+                resetTime
+                frames
+                newInx
+                z
+                background
+                kh
+                dir
+                HP {health = newHp, heartPositions = hposs, heartPictures = pics, heartIsThere = newHeartsThere, allheartPictures = newAllHeartPictures}
+                newInx
+                cw {bullets = newBulletsList}
+                newLevels
+                levelIndex
+                newGameOverState
+                gameOverPic
+                hb
+                zaf
+                screenState
+                updateKnightAttacking
+                bulletImage
+                zombieBones
+                score
+
+updateWorldState4Story :: Float -> WorldState -> WorldState
+updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score) =
+    let newTime = (steps + timeAcc)
+        (newInx, resetTime) = if newTime >= 0.5
+                                    then ((i + 1), 0)
+                                    else (i, newTime)
+
+        newCharacterPos = changePosBasedUponKeyHolds (x,y) kh window
+        newEnimies = moveEnimiesCloser enimies (x,y) 1.5
+
+        attackingZombies = getAttackingZombies enimies (x,y)
+
+        (newZombieIndex, resetZombieTimer) = if newTime >= 0.25
+                                                    then (1, 0)
+                                                    else (0, newTime)
+        updateZombies =
+                    [ if z `elem` attackingZombies
+                    then z {isAttacking = True, zAttackTimer = 0.5, zombieAttackingFramesIndex = zombieAttackingFramesIndex z + newZombieIndex}
+                    else
+                        let newTimer = max 0 (zAttackTimer z - steps)
+                        in z {isAttacking = newTimer > 0, zAttackTimer = resetZombieTimer, zombieAttackingFramesIndex = 0}
+                        | z <- newEnimies ]
+
+        (newKnightIndex, resetKnightTimer) = if newTime >= 1
+                                             then (1, 0)
+                                             else (0, newTime)
+        updateKnightAttacking =
+            if knightIsAttacking (knightInfo)
+            then
+                let newTimer = max 0.0 (knightAttackTimer knightInfo - steps)
+                    stillAttacking = newTimer > 0
+                    totalAttackDuration = 1.3
+                    frameDuration = totalAttackDuration / fromIntegral (length (knightAttackFrames knightInfo))
+                    elapsed = totalAttackDuration - newTimer
+
+                    frame = floor (elapsed / frameDuration)
+                    newIndex = if stillAttacking then frame else 0
+                in knightInfo {knightIsAttacking = stillAttacking, knightAttackTimer = resetKnightTimer, knightAttackFrameIndex = newIndex }
+            else
+                knightInfo
+
+
+        newHp =
+                    if newTime >= 0.5
+                    then health - length (getAttackingZombies enimies (x, y))
+                    else health
+
+        newGameOverState = newHp == 0
+
+        newBulletsPos = updateBulletsPos (bullets cw)
+        
+
+        newLvlIndex = if null updateZombies 
+                    then levelIndex + 1
+                    else levelIndex
+
+        -- if newLvlIndex > 3 then 
+
+        newZombies = if null updateZombies 
+                    then spawnNewEnemies newLvlIndex
+                    else updateZombies
+
+        checkForCollisions = checkForBulletCollisions (newBulletsPos) newZombies
+
+        newBulletsList = fst checkForCollisions
+        newZombiesList = snd checkForCollisions
+        newHeartsThere = removeTheHeartsLost heartsThere newHp
+        newAllHeartPictures = updateAllHeartPics allheartPictures heartsThere pics
+
+        newScore = if length (newZombiesList) < length enimies
+                   then score + 1
+                   else score
+    
+        in WorldState
+                newCharacterPos
+                clr
+                radius
+                b
+                c
+                newZombiesList
+                window
+                resetTime
+                frames
+                newInx
+                z
+                background
+                kh
+                dir
+                HP {health = newHp, heartPositions = hposs, heartPictures = pics, heartIsThere = newHeartsThere, allheartPictures = newAllHeartPictures}
+                newInx
+                cw {bullets = newBulletsList}
+                lvls
+                newLvlIndex
+                newGameOverState
+                gameOverPic
+                hb
+                zaf
+                screenState
+                updateKnightAttacking
+                bulletImage
+                zombieBones
+                newScore
+       
+    
 
 
 updateLevels ::  [Levels] -> Int -> Levels -> [Levels]
@@ -762,7 +714,7 @@ updateBulletsPos bullets = [b {position = (x + vx, y + vy)} | b <- bullets, let 
 
 checkForBulletCollisions :: [Bullet] -> [Zombie] -> ([Bullet], [Zombie])
 checkForBulletCollisions bullets zombies =
-    let hits = [(b, z) | b <- bullets, z <- zombies, distance (position b) (zPos z) < 30]
+    let hits = [(b, z) | b <- bullets, z <- zombies, distance (position b) (zPos z) < if isBossZombie z then 60 else 30]
         newBullets = [b | (b, _) <- hits]
         newZombies = [if any (\(_, z1) -> z == z1) hits
                       then z {zombieHP = zombieHP z - 1}
@@ -818,7 +770,18 @@ moveEnimiesCloser zombies (playerX, playerY) speed =
 
 -- function to draw the zombie hitboxes 
 drawZombieHitBoxes :: [Zombie] -> [Picture]
-drawZombieHitBoxes zombies = [Translate x y (Color red (Circle 30)) | z <- zombies, let (x, y) = (zPos z)]
+drawZombieHitBoxes zombies = 
+    
+    [Translate x y (zombieHitBox) | z <- zombies, let (x, y) = (zPos z), let isBoss = isBossZombie z, 
+    let zombieHitBox = if zombieHP z <= 2 
+                       then 
+                          (if isBoss 
+                          then Scale 2.0 2.0 (Color red (Circle 30)) 
+                          else (Color red (Circle 30))) 
+                        else
+                          (if isBoss 
+                          then Scale 2.0 2.0 (Color orange (Circle 30)) 
+                          else (Color orange (Circle 30)))]
 
 -- function to load in the zombies frames
 loadInZombieFrames :: IO [Picture]
@@ -836,25 +799,30 @@ loadInZombieAttackingFrames :: IO [Picture]
 loadInZombieAttackingFrames = sequence [loadBMP ("assets/zombieAttackFrame" ++ show x ++ ".bmp") | x <- [1..9]]
 
 loadInPlayerAttackingFrames :: IO [Picture]
-loadInPlayerAttackingFrames = sequence [loadBMP ("assets/playerAttack" ++ show x ++ ".bmp") | x <- [1..2]]
+loadInPlayerAttackingFrames = sequence [loadBMP ("assets/knightAttackFrame" ++ show x ++ ".bmp") | x <- [1..14]]
 
 -- Hotbar 1 = HotBar 2 = 
 loadInHotBarAssets :: IO [Picture]
 loadInHotBarAssets = sequence [loadBMP ("assets/hotBar" ++ show x ++ ".bmp") | x <- [1..2]]
+
+loadInBackGrounds :: IO [Picture]
+loadInBackGrounds = sequence [loadBMP ("assets/backGround" ++ show x ++ ".bmp") | x <- [1..7]]
 
 main :: IO ()
 main = do
     mainCharacter <- loadInPlayerFrames
     gameOverPicture <- loadBMP "assets/youDied.bmp"
     z <- loadInZombieFrames
-    spaceBack <- loadBMP "assets/canyonBackground.bmp"
+    backgrounds <- loadInBackGrounds
     heartPictures <- loadInHealthFrames
     hotBarPictures <- loadInHotBarAssets
     zombieAttackFrames <- loadInZombieAttackingFrames
+    knightAttackingFrames <- loadInPlayerAttackingFrames
+    bullet <- loadBMP "assets/Arrow.bmp"
 
     let initialHeart = heartPictures !! 1
     let windowHeight = 1000
-    let windowWidth = 1000
+    let windowWidth = 1875
 
     let initialWorld =  WorldState
                     (0, 0)
@@ -862,18 +830,13 @@ main = do
                     20
                     False
                     0
-                    [
-                    Z{zPos = (500,500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2,   zombieAttackingFramesIndex = 0},
-                    Z{zPos = (-500,-500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2,   zombieAttackingFramesIndex = 0},
-                    Z{zPos = (-500, 500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2,   zombieAttackingFramesIndex = 0},
-                    Z{zPos =(500, -500),isAttacking = False ,zAttackTimer= 0, zombieHP = 2,  zombieAttackingFramesIndex = 0}
-                     ]
-                    (Window windowHeight windowWidth)
+                    []
+                    (Window windowWidth windowHeight)
                     0
                     mainCharacter
                     0
                     z
-                    spaceBack
+                    backgrounds
                     (K False False False False)
                     (Dir False False True False)
                     (
@@ -888,11 +851,16 @@ main = do
                     W {closeAttack = False, rangedAttack = True, numOfBullets = 15, bullets = []}
                     [L {levelEnemyAmmount = 5, levelInterval = 5, totalTimeSpawning = 30, spawnT = 0},
                     L {levelEnemyAmmount = 10, levelInterval = 2.5, totalTimeSpawning = 35, spawnT = 0}]
-                    0
+                    1
                     False
                     gameOverPicture
                     H {hotBarPictures= hotBarPictures, hotBarIndex= 1}
                     zombieAttackFrames
+                    Screen {mainMenu = True, playingEndlessScreen = False, playingStoryScreen = False, endOfStoryScreen = False}
+                    Knight {knightAttackFrames = knightAttackingFrames, knightIsAttacking = False, knightAttackTimer = 0, knightAttackFrameIndex = 0}
+                    bullet
+                    []
+                    0
 
     play
         FullScreen
