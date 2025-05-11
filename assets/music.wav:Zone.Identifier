@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://cloudconvert.com/
+HostUrl=https://us-east.storage.cloudconvert.com/tasks/4dc25c4b-33cc-437c-a3c8-196f9582f0fe/music.wav?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20250511%2Fva%2Fs3%2Faws4_request&X-Amz-Date=20250511T070423Z&X-Amz-Expires=86400&X-Amz-Signature=e8c2ab09b5bed7dbbeea0fe83ac27034b9da2f08a3f0bbdbe141a8393fe1042d&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22music.wav%22&response-content-type=audio%2Fwav&x-id=GetObject

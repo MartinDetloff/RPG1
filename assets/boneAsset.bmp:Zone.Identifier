@@ -1,0 +1,4 @@
+[ZoneTransfer]
+ZoneId=3
+ReferrerUrl=https://cloudconvert.com/
+HostUrl=https://us-east.storage.cloudconvert.com/tasks/47b65414-6139-425d-a0e5-64a6e68f5120/boneAsset.bmp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=cloudconvert-production%2F20250511%2Fva%2Fs3%2Faws4_request&X-Amz-Date=20250511T051435Z&X-Amz-Expires=86400&X-Amz-Signature=879f9d7b56798573707a50d9fd30f8272f891092308f015ea07be8ec09ad4bec&X-Amz-SignedHeaders=host&response-content-disposition=attachment%3B%20filename%3D%22boneAsset.bmp%22&response-content-type=image%2Fbmp&x-id=GetObject
