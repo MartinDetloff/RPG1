@@ -51,6 +51,7 @@ data WorldState = WorldState {
     , score :: Int
     , bonePic :: Picture
     , boneAngle :: Float
+    , boss :: Boss
 }
 
 data WindowDimensions = Window {
@@ -134,7 +135,18 @@ data ScreenState = Screen {
     dialougeBackGround :: Picture
 }
 
-
+data Boss = Bozz {
+    positionB :: (Float, Float),
+    healthB :: Int,
+    rangedAttackTimer :: Float,
+    specialAttackTimer :: Float,
+    bossPicture :: Picture,
+    bossFireballSprite :: Picture,
+    isBossAlive :: Bool,
+    fireBalls :: [Bullet],
+    isRdy2Shoot :: Bool,
+    isRdy2Shoot2 :: Bool
+}
 
 data KnightInformation = Knight {
     knightAttackFrames :: [Picture],
@@ -147,34 +159,34 @@ spawnNewEnemies :: Int -> [Zombie]
 spawnNewEnemies x = case x of
         0 -> []
         1 -> []
-        2 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = True, isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+        2 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-             Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}
+             Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 2, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False}
               ]
 
         3 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False}
-             ,Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
+             ,Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 15, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
               Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True , timeSinceShot  = 0.0, isReadyToShoot = False},
               Z{zPos =(-275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
               Z{zPos =(-275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 4, zombieAttackingFramesIndex = 0, isBossZombie = False, isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}
               ]
 
-        4 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(-275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(-275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(-275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(-400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(-275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 6, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}]
+        4 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 20, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(-275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(-275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(-275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(-400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 20, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(-275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(275, -125),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
+              Z{zPos =(275, 125),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}]
 
-        5 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False},
+        5 -> [Z{zPos =(0, 400),isAttacking = False ,zAttackTimer= 0, zombieHP = 25, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
               Z{zPos =(400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 25, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
               Z{zPos =(-400, 0),isAttacking = False ,zAttackTimer= 0, zombieHP = 25, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False},
-              Z{zPos =(275, -250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}]
-        6 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 8, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}]
+              Z{zPos =(0, -400),isAttacking = False ,zAttackTimer= 0, zombieHP = 25, zombieAttackingFramesIndex = 0, isBossZombie = True,  isRangedZombie = True, timeSinceShot  = 0.0, isReadyToShoot = False}]
+        6 -> [Z{zPos =(275, 250),isAttacking = False ,zAttackTimer= 0, zombieHP = 12, zombieAttackingFramesIndex = 0, isBossZombie = False,  isRangedZombie = False, timeSinceShot  = 0.0, isReadyToShoot = False}]
         7 -> []
         8 -> []
 
@@ -187,7 +199,8 @@ handleInput (EventKey (SpecialKey KeyEnter) Down _ _) worldState =
         newScreenState = if ss then (screenState worldState) {dialouge = False, playingStoryScreen = True} else screenState worldState
         newLevelIndex = levelIndex worldState + 1
         newZombies = spawnNewEnemies newLevelIndex
-    in worldState {screenState = newScreenState, levelIndex = newLevelIndex, enimies = newZombies}
+        newIsBossAlive = newLevelIndex == 6
+    in worldState {screenState = newScreenState, levelIndex = newLevelIndex, enimies = newZombies, boss = (boss worldState) {isBossAlive = newIsBossAlive}}
 
 -- you want to choose the endless mode
 handleInput (EventKey (Char 'e') Down _ _) worldState =
@@ -264,7 +277,7 @@ handleInput (EventKey (SpecialKey KeyRight) Down _ _) worldState =
 --     worldState {keysHeld = (keysHeld worldState) {isRightHeld = False}}
 
 -- Case for if you let go of the rightKey
-handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle)  =
+handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)  =
 
     let newBullets = if rangedAttack
                      then spawnNewBullets bullets (x,y) dir
@@ -313,6 +326,7 @@ handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radi
         score
         bonePic
         boneAngle
+        boss
 
 
 
@@ -321,7 +335,7 @@ handleInput (EventKey (Char '1') Down _ _) worldState =
             hotbar = (hotbar worldState) {hotBarIndex = 0}}
 
 
-handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
 
     WorldState
         (x, y)
@@ -354,8 +368,9 @@ handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enim
         score
         bonePic
         boneAngle
+        boss
 
-handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     WorldState
         (x, y)
         clr
@@ -387,6 +402,7 @@ handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc fram
         score
         bonePic
         boneAngle
+        boss
 
 
 -- shootBullet :: Direction -> (Float, Float) -> [Bullet] -> 
@@ -448,9 +464,68 @@ spawnNewBones bullets (px,py) zombies = [
     direction = Dir {north = True, south = False, east = False, west = False}} | z <- zombies, let (zx,zy) = zPos z, let dx = px - zx, let dy = py - zy, let magnitude = sqrt (dx*dx + dy*dy), isReadyToShoot z] ++
     spawnEightBonesFromBoss bullets (filter isBossZombie zombies)
 
+
+spawnNewFireBalls :: [Bullet] -> (Float, Float) -> Boss -> [Bullet]
+spawnNewFireBalls bullets (px,py) boss 
+    | not (isRdy2Shoot boss) = bullets
+    | otherwise = 
+    let (bx,by) = positionB boss
+        dx = px - bx 
+        dy = py - by 
+        magnitude = sqrt (dx*dx + dy*dy)
+    in [B {velocity = (5 * dx / magnitude, 5 * dy / magnitude),
+    position = (bx, by),
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}}] ++ bullets 
+
+
 spawnEightBonesFromBoss :: [Bullet] -> [Zombie] -> [Bullet]
 spawnEightBonesFromBoss bullets zombies = bullets ++ concat [spawnEightBones bullets z  | z <-  zombies, let (zx, zy) = zPos z]
 
+spawnEightBonesForBoss :: [Bullet] -> Boss -> [Bullet]
+spawnEightBonesForBoss bullets boss 
+    | (isRdy2Shoot2 boss) = 
+    [B {velocity = (10, 0),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (-10, 0),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (0, 10),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (0, -10),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (7.071, 7.071),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (7.071, -7.071),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (-7.071, -7.071),
+    position = positionB boss,
+        damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}},
+
+    B {velocity = (-7.071, 7.071),
+    position = positionB boss,
+    damage = 1,
+    direction = Dir {north = True, south = False, east = False, west = False}}] ++ bullets
+
+    | otherwise = bullets
 
 spawnEightBones :: [Bullet] -> Zombie -> [Bullet]
 spawnEightBones bullets zombie = [
@@ -534,11 +609,11 @@ drawMultiLineText xs (ix, iy)= [ Scale 0.35 0.35 (Translate (ix) (iy - i * 250 )
 
 
 drawMainMenu :: WorldState -> Picture
-drawMainMenu (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+drawMainMenu (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     Pictures [Scale 2.5 1.5 (b !! 1)]
 
 drawPlayingEndlessScreen :: WorldState -> Picture
-drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
 
     let currentZombieFrame = z !! (i `mod` length z)
         currentPlayerFrame = playerFrames !! (psi `mod` length playerFrames)
@@ -570,7 +645,7 @@ drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc play
     ++ drawZombieNames enimies black)
 
 drawPlayingStoryScreen :: WorldState -> Picture
-drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
 
     let currentZombieFrame = z !! (i `mod` length z)
         currentPlayerFrame = playerFrames !! (psi `mod` length playerFrames)
@@ -582,6 +657,14 @@ drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc player
         currentBackGround = if playingEndlessScreen screenState
                             then Scale 2.5 1.5 (b !! 0)
                             else Scale 1.75 1 (b !! (levelIndex `mod` 7))
+        currentBossSprite = if isBossAlive (boss)
+                            then drawBoss boss
+                            else Circle 0
+        currentScore = if isBossAlive (boss) 
+                       then [Circle 0]
+                       else [Color white (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))]
+
+        
 
     in Pictures (currentBackGround :
     Translate x y (Rotate angle2Rotate currentPlayerFrame2) :
@@ -598,10 +681,16 @@ drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc player
     drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
     [Translate 0 0 currentGameOver] ++
-    [Color white (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))] ++
     [ drawBone boneAngle bonePic (bx,by) | bone <- zombieBones, let (bx, by) = position bone] ++
-    (drawZombieNames enimies white))
+    (drawZombieNames enimies white) ++ [currentBossSprite]
+    ++ currentScore ++ [drawFireBalls boneAngle (bossFireballSprite boss) (fbx, fby) | fb <- (fireBalls boss), let (fbx, fby) = position fb]) 
 
+
+drawFireBalls :: Float -> Picture -> (Float, Float) -> Picture
+drawFireBalls angle ballPic (bx, by) = ((Translate bx by (Rotate angle ((Scale 0.05 0.05 ((ballPic)))))))
+
+drawBoss :: Boss -> Picture
+drawBoss b = Pictures ((Translate (fst(positionB (b)))  (snd(positionB (b))) (Scale 0.20 0.20 (bossPicture (b)))) : [Translate (fst(positionB (b))) (snd(positionB (b))) (Color red (Circle 100))])
 
 drawBone :: Float -> Picture -> (Float, Float) -> Picture
 drawBone angle bonePic (bx, by) = ((Translate bx by (Rotate angle ((Scale 0.05 0.05 ((bonePic)))))))
@@ -631,7 +720,7 @@ getRotateBasedUponDir (Dir north south east west)
 
 
 tempFun :: Float -> WorldState -> WorldState
-tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle)
+tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)
 
     | health <= 0 = world {isGameOver = True}
     | isGameOver = world
@@ -641,7 +730,7 @@ tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc fram
         (False, True, _) ->
             updateWorldState4Endless steps world
         (True, False, _) ->
-            (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle)
+            (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)
         (False, False, False) ->
             updateWorldState4Story steps world
         (False, False, True) ->
@@ -651,7 +740,7 @@ updateWorldStateDiag :: Float -> WorldState -> WorldState
 updateWorldStateDiag steps ws = ws
 
 updateWorldState4Endless :: Float -> WorldState -> WorldState
-updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     let newTime = (steps + timeAcc)
         (newInx, resetTime) = if newTime >= 0.5
                               then ((i + 1), 0)
@@ -732,6 +821,7 @@ updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window t
 
         checkForCollisions = checkForBulletCollisions (newBulletsPos) newEnimiesP2
         (newBonesL, newHP2) = checkForBulletCollisions2 (newBonesPos) (x,y) newHp
+        
 
         newfinalBones = (despawnOutOfBoundsBones (height window) (width window) newBonesL)
         newBulletsList = fst checkForCollisions
@@ -777,6 +867,7 @@ updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window t
                 newScore
                 bonePic
                 (boneAngle + 30)
+                boss
 
 despawnOutOfBoundsBones :: Float -> Float -> [Bullet] -> [Bullet]
 despawnOutOfBoundsBones height width bones = [b | b <- bones, let (bx,by) = position b, checkBounds (bx,by) height width]
@@ -790,7 +881,7 @@ checkBounds (bx, by) height width
             | otherwise = True
 
 updateWorldState4Story :: Float -> WorldState -> WorldState
-updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle) =
+updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     let newTime = (steps + timeAcc)
         (newInx, resetTime) = if newTime >= 0.5
                                     then ((i + 1), 0)
@@ -801,6 +892,8 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
 
         newEnimies = moveEnimiesCloser enimies (x,y) 1.5
 
+
+        
         attackingZombies = getAttackingZombies enimies (x,y)
         randgedAttackingZombies = getAttackingZombies2 enimies (x,y)
 
@@ -826,7 +919,24 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
 
         newZombieBones = spawnNewBones zombieBones (x,y) [z | z <- updateZombies2, isReadyToShoot z ]
 
+        updateBoss =  
+                     if rangedAttackTimer boss > 0.5
+                     then boss {rangedAttackTimer = 0, isRdy2Shoot = True}
+                     else let newTimeSince = max 0.0 (rangedAttackTimer boss + steps)
+                          in  boss {rangedAttackTimer = newTimeSince}
+        
+        updateBoss1 =  
+                     if specialAttackTimer updateBoss > 1.0
+                     then updateBoss {specialAttackTimer = 0, isRdy2Shoot2 = True}
+                     else let newTimeSince1 = max 0.0 (specialAttackTimer updateBoss + steps)
+                          in  updateBoss {specialAttackTimer = newTimeSince1}
+
+        newFireBalls = if isBossAlive updateBoss1 then spawnNewFireBalls (fireBalls updateBoss1) (x,y) updateBoss1 else fireBalls updateBoss1
+        newBones = if isBossAlive updateBoss1 then (spawnEightBonesForBoss newZombieBones updateBoss1) else newZombieBones
+
         updateZombies3 = [z {isReadyToShoot = False} | z <- updateZombies2]
+
+        updateBoss2 = (updateBoss1) {isRdy2Shoot = False, isRdy2Shoot2 = False}
 
 
 
@@ -857,12 +967,13 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
         newGameOverState = newHp == 0
 
         newBulletsPos = updateBulletsPos (bullets cw)
-        newBonesPos = updateBulletsPos newZombieBones
+        newBonesPos = updateBulletsPos newBones
+        newFireBallPos = updateBulletsPos newFireBalls
 
         -- initWorld <- initialWorld
         (newLvlIndex, newScreenState, newHp1)
           | levelIndex > 6 = (1, screenState {mainMenu = True, playingEndlessScreen = False, playingStoryScreen = False}, 5)
-          | (null updateZombies3 && not (dialouge screenState)) = (levelIndex, screenState{dialouge = True, playingStoryScreen = False}, newHp)
+          | (null updateZombies3 && not (dialouge screenState) && not (isBossAlive updateBoss2)) = (levelIndex, screenState{dialouge = True, playingStoryScreen = False}, newHp)
           | otherwise = (levelIndex, screenState, newHp)
 
         -- newZombies = if null updateZombies3 && not (dialouge newScreenState)
@@ -871,21 +982,29 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
 
         -- if newLvlIndex > 3 then 
 
-
+        
+         
 
         checkForCollisions = checkForBulletCollisions (newBulletsPos) updateZombies3
+        
         (newBonesL, newHP2) = checkForBulletCollisions2 (newBonesPos) (x,y) newHp1
+        (newFireBalls1, newHP3) = checkForBulletCollisions2 newFireBallPos (x,y) newHP2
 
         newfinalBones = (despawnOutOfBoundsBones (height window) (width window) newBonesL)
         newBulletsList = fst checkForCollisions
         newZombiesList = snd checkForCollisions
-        newHeartsThere = removeTheHeartsLost heartsThere newHP2
+
+        (newBullets2, newBoss) = checkForBulletCollisions1 (newBulletsList) updateBoss2
+
+        newHeartsThere = removeTheHeartsLost heartsThere newHP3
         newAllHeartPictures = updateAllHeartPics allheartPictures newHeartsThere pics
 
         -- newBonePic = if newTime >= 0.75 then Rotate 30 bonePic else bonePic
         newScore = if length (newZombiesList) < length enimies
                    then score + 1
                    else score
+
+        newBoss20 = if healthB newBoss <= 0 then (newBoss) {isBossAlive = False} else newBoss
 
         in WorldState
                 newCharacterPos
@@ -902,9 +1021,9 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
                 background
                 kh
                 dir
-                HP {health = newHP2, heartPositions = hposs, heartPictures = pics, heartIsThere = newHeartsThere, allheartPictures = newAllHeartPictures}
+                HP {health = newHP3, heartPositions = hposs, heartPictures = pics, heartIsThere = newHeartsThere, allheartPictures = newAllHeartPictures}
                 newInx
-                cw {bullets = newBulletsList}
+                cw {bullets = newBullets2}
                 lvls
                 newLvlIndex
                 newGameOverState
@@ -918,9 +1037,8 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
                 newScore
                 bonePic
                 (boneAngle + 30)
-
-
-
+                newBoss20 {fireBalls = newFireBalls1}
+ 
 
 updateLevels ::  [Levels] -> Int -> Levels -> [Levels]
 updateLevels levels indxOfOneToUpdate lvl1 = [if indx == indxOfOneToUpdate then lvl1 else lvl | (indx, lvl) <- zip [0..] levels]
@@ -944,6 +1062,13 @@ checkForBulletCollisions2 bullets (px, py) playerHp =
     let hits = [(b, playerHp - damagei) | b <- bullets, let damagei = damage b, distance (position b) (px, py) < 30]
         newBullets = [b | (b, _) <- hits]
     in ([b | b <- bullets, b `notElem` newBullets], max 0 playerHp - length hits)
+
+checkForBulletCollisions1 :: [Bullet] -> Boss -> ([Bullet], Boss)
+checkForBulletCollisions1 bullets boss =
+    let hits = [b | b <- bullets, distance (position b) (positionB boss) < 100]
+        newBullets = [b | b  <- hits]
+    in ([b | b <- bullets, b `notElem` newBullets], boss {healthB = (healthB boss) - length hits})
+
 
 -- function for the angle to the player 
 angle2Player :: (Float, Float) -> (Float, Float) -> Float
@@ -1033,6 +1158,8 @@ initialWorld =
         bullet <- loadBMP "assets/Arrow.bmp"
         boneAsset <- loadBMP "assets/boneAsset.bmp"
         diagBack <- loadBMP "assets/dialougeScreen.bmp"
+        fireBall <- loadBMP "assets/fireBall.bmp"
+        bossPic <- loadBMP "assets/bossAsset.bmp"
 
 
 
@@ -1083,7 +1210,7 @@ initialWorld =
                     diag3Txt = ["You think you alone can defeat me?", "When countless others have failed??"],
                      diag4Txt = ["I have slumbered in this crypt for 1000 years!", "I have killed all who dare enter!", "My army cannot be bested by a single man!"],
                      diag5Txt = ["Argh, fine! I will do this myself!!", "I am the glorious necromancer Glasgow...", "I cannot be defeated!!"],
-                     diag6Txt = ["No, this is impossible!", "I will be back, this I promise!", "", "Count your days Joseph Haugh!!"],
+                     diag6Txt = ["No, this is impossible!", "I will be back, this I promise!", "Count your days Joseph Haugh!!"],
                      dialougeBackGround = diagBack
                      }
                     Knight {knightAttackFrames = knightAttackingFrames, knightIsAttacking = False, knightAttackTimer = 0, knightAttackFrameIndex = 0}
@@ -1091,7 +1218,9 @@ initialWorld =
                     []
                     0
                     boneAsset
-                    0)
+                    0
+                    Bozz {healthB = 1, positionB = (0,300), rangedAttackTimer = 0.0, specialAttackTimer = 0.0, bossFireballSprite = fireBall, bossPicture = bossPic, isBossAlive = False, fireBalls = [], isRdy2Shoot = False, isRdy2Shoot2 = False}
+                    )
 
 main :: IO ()
 main = do
