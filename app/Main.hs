@@ -17,9 +17,6 @@ import System.Random (randomRIO)
 import Brillo.Geometry.Angle (radToDeg)
 import Data.Complex (magnitude)
 
-
--- import Math
-
 data WorldState = WorldState {
     circlePos :: (Float, Float)
     , circleColor :: Color
@@ -99,7 +96,6 @@ data Zombie = Z {
     zPos :: (Float, Float),
     isAttacking :: Bool,
     zAttackTimer :: Float,
-    -- zombieMoveFrames :: [Picture],
     timeSinceShot :: Float,
     zombieAttackingFramesIndex :: Int,
     zombieHP :: Int,
@@ -221,12 +217,6 @@ handleInput (EventKey (SpecialKey KeyUp) Down _ _) worldState =
     else
         worldState { directionFacing = (directionFacing worldState) {north = True, south = False, east = False, west = False}}
 
--- -- Case for if you let go of the upkey
--- handleInput (EventKey (SpecialKey KeyUp) Up _ _) worldState =
---     worldState {keysHeld = (keysHeld worldState) {isUpHeld = False}}
-
-
-
 -- case where you press down key
 handleInput (EventKey (SpecialKey KeyDown) Down _ _) worldState =
 
@@ -239,9 +229,7 @@ handleInput (EventKey (SpecialKey KeyDown) Down _ _) worldState =
     else
         worldState { directionFacing = (directionFacing worldState) {north = False, south = True, east = False, west = False}}
 
--- -- Case for if you let go of the downKey
--- handleInput (EventKey (SpecialKey KeyDown) Up _ _) worldState =
---     worldState {keysHeld = (keysHeld worldState) {isDownHeld = False}}
+
 
 -- case where you press left key
 handleInput (EventKey (SpecialKey KeyLeft) Down _ _) worldState =
@@ -254,10 +242,6 @@ handleInput (EventKey (SpecialKey KeyLeft) Down _ _) worldState =
                     }
     else
         worldState { directionFacing = (directionFacing worldState) {north = False, south = False, east = False, west = True}}
-
--- -- Case for if you let go of the leftKey
--- handleInput (EventKey (SpecialKey KeyLeft) Up _ _) worldState =
---     worldState {keysHeld = (keysHeld worldState) {isLeftHeld = False}}
 
 
 -- case where you press right key
@@ -272,12 +256,10 @@ handleInput (EventKey (SpecialKey KeyRight) Down _ _) worldState =
     else
         worldState { directionFacing = (directionFacing worldState) {north = False, south = False, east = True, west = False}}
 
--- -- Case for if you let go of the leftKey
--- handleInput (EventKey (SpecialKey KeyRight) Up _ _) worldState =
---     worldState {keysHeld = (keysHeld worldState) {isRightHeld = False}}
-
 -- Case for if you let go of the rightKey
-handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)  =
+handleInput (EventKey (SpecialKey KeySpace) Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z 
+                                                      background k dir health psi (W closeAttack rangedAttack numOfBullets bullets) lvls levelIndex isGameOver 
+                                                      gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)  =
 
     let newBullets = if rangedAttack
                      then spawnNewBullets bullets (x,y) dir
@@ -335,7 +317,9 @@ handleInput (EventKey (Char '1') Down _ _) worldState =
             hotbar = (hotbar worldState) {hotBarIndex = 0}}
 
 
-handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z 
+                                           background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf 
+                                           screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
 
     WorldState
         (x, y)
@@ -370,7 +354,9 @@ handleInput (EventKey (Char '2') Down _ _) (WorldState (x,y) clr radius b c enim
         boneAngle
         boss
 
-handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+handleInput _ (WorldState (x,y) clr radius b c enimies 
+              (Window w h) timeAcc frames i z background kh dir health psi cw lvls levelIndex isGameOver gameOverPic 
+              hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     WorldState
         (x, y)
         clr
@@ -410,9 +396,11 @@ handleInput _ (WorldState (x,y) clr radius b c enimies (Window w h) timeAcc fram
 getAttackingZombies :: [Zombie] -> (Float, Float) -> [Zombie]
 getAttackingZombies zombies (px, py) = [z | z <- zombies, distance (zPos z) (px, py) < 50, not (isRangedZombie z)]
 
+-- function to get the attacking ranged zombie 
 getAttackingZombies2 :: [Zombie] -> (Float, Float) -> [Zombie]
 getAttackingZombies2 zombies (px, py) = [z | z <- zombies, distance (zPos z) (px, py) < 600, isRangedZombie z]
 
+--function to calculate the distance between 2 points
 distance :: (Float, Float) -> (Float, Float) -> Float
 distance (x1, y1) (x2, y2) = sqrt ((x2- x1)^2 + (y2-y1)^2)
 
@@ -456,12 +444,15 @@ spawnNewBullets bullets (x, y) direction =
     B {velocity = makeVelocityBasedUponDirection direction, position = (x,y), damage = 1, direction = direction} : bullets
 
 
+-- function to spawn in new bones
 spawnNewBones :: [Bullet] -> (Float, Float) -> [Zombie] -> [Bullet]
-spawnNewBones bullets (px,py) zombies = [
-    B {velocity = (10 * dx / magnitude, 10 * dy / magnitude),
+spawnNewBones bullets (px,py) zombies = 
+    [B {velocity = (10 * dx / magnitude, 10 * dy / magnitude),
     position = (zx, zy),
     damage = 1,
-    direction = Dir {north = True, south = False, east = False, west = False}} | z <- zombies, let (zx,zy) = zPos z, let dx = px - zx, let dy = py - zy, let magnitude = sqrt (dx*dx + dy*dy), isReadyToShoot z] ++
+    direction = Dir {north = True, south = False, east = False, west = False}} 
+    | z <- zombies, let (zx,zy) = zPos z, let dx = px - zx, let dy = py - zy, let magnitude = sqrt (dx*dx + dy*dy), isReadyToShoot z] ++
+
     spawnEightBonesFromBoss bullets (filter isBossZombie zombies)
 
 
@@ -578,14 +569,7 @@ makeVelocityBasedUponDirection (Dir north south east west)
                 | east = (10, 0)
                 | west = (-10, 0)
 
--- initialWorld :: WorldState
--- initialWorld = WorldState (0, 0) green 20  False 0 [(50,50), (100,100), (-50, -50), (-100, -100)] (Window 500 500) 0 frames
-
--- left = 90
--- down = 0
--- right = 270
--- up = 180
-
+-- function to draw the world based upon a screen state
 drawWorld :: WorldState ->  Picture
 drawWorld worldState =
     case (mainMenu (screenState worldState), playingEndlessScreen (screenState worldState), dialouge (screenState worldState)) of
@@ -594,6 +578,7 @@ drawWorld worldState =
             (False, False, False) -> drawPlayingStoryScreen worldState
             (False, False, True) -> drawDiaglougeScreen worldState
 
+-- function to draw the dialouge screens
 drawDiaglougeScreen :: WorldState -> Picture
 drawDiaglougeScreen ws = 
     case (levelIndex ws) of
@@ -604,30 +589,42 @@ drawDiaglougeScreen ws =
         5 -> Pictures (dialougeBackGround (screenState ws) : drawMultiLineText (diag5Txt (screenState ws)) (-1000, 1250))
         6 -> Pictures (dialougeBackGround (screenState ws) : drawMultiLineText (diag6Txt (screenState ws)) (-1000, 1250))
 
+-- function to split texts into multiple lines
 drawMultiLineText :: [String] -> (Float, Float)-> [Picture]
 drawMultiLineText xs (ix, iy)= [ Scale 0.35 0.35 (Translate (ix) (iy - i * 250 ) (Color white (Text s))) | (s, i) <- zip xs [1..] ]
 
-
+-- function to draw the main menu
 drawMainMenu :: WorldState -> Picture
-drawMainMenu (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+drawMainMenu (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) 
+             psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf 
+             screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     Pictures [Scale 2.5 1.5 (b !! 1)]
 
+-- function to draw the endless gamemode
 drawPlayingEndlessScreen :: WorldState -> Picture
-drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi 
+                         (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState
+                          knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+
 
     let currentZombieFrame = z !! (i `mod` length z)
         currentPlayerFrame = playerFrames !! (psi `mod` length playerFrames)
         angle2Rotate = getRotateBasedUponDir dir
+        
         currentGameOver = if isGameOver then gameOverPic else Circle 0
+       
         currentPlayerFrame2 = if knightIsAttacking knightInfo
                               then knightAttackFrames knightInfo !! knightAttackFrameIndex knightInfo
                               else currentPlayerFrame
+        
         currentBackGround = if playingEndlessScreen screenState
                             then Scale 2.5 1.5 (b !! 0)
                             else Scale 1.75 1 (b !! (levelIndex))
 
     in Pictures (currentBackGround :
+    
     Translate x y (Rotate angle2Rotate currentPlayerFrame2) :
+    
     [ let angle = angle2Player (x,y) (ex, ey)
           currentZombieFrame2 = if attacking then zaf !! (zombieAttackingFramesIndex z `mod` length zaf) else currentZombieFrame
           in Color red (Translate ex ey (Rotate (radToDeg ((-1 * angle)) + 90) (if isBoss then Scale 2.0 2.0 currentZombieFrame2 else currentZombieFrame2))) |
@@ -640,26 +637,34 @@ drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc play
     drawBullets bullets bulletImage ++
     drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
-    [Translate 0 0 currentGameOver] ++ [Color black (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))] ++
-    [ drawBone boneAngle bonePic (bx,by) | bone <- zombieBones, let (bx, by) = position bone]
-    ++ drawZombieNames enimies black)
+    [Translate 0 0 currentGameOver] ++ 
+    [Color black (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))] ++
+    [ drawBone boneAngle bonePic (bx,by) | bone <- zombieBones, let (bx, by) = position bone] ++ 
+    drawZombieNames enimies black)
 
+
+-- function to draw the story game mode
 drawPlayingStoryScreen :: WorldState -> Picture
 drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc playerFrames i z b kh dir (HP health hposs pics heartsThere allheartPictures) psi (W closeAttack rangedAttack numOfBullets bullets ) lvls levelIndex isGameOver gameOverPic (H hotBarPictures hotBarIndex) zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
 
     let currentZombieFrame = z !! (i `mod` length z)
         currentPlayerFrame = playerFrames !! (psi `mod` length playerFrames)
         angle2Rotate = getRotateBasedUponDir dir
+        
         currentGameOver = if isGameOver then gameOverPic else Circle 0
+        
         currentPlayerFrame2 = if knightIsAttacking knightInfo
                               then knightAttackFrames knightInfo !! knightAttackFrameIndex knightInfo
                               else currentPlayerFrame
+        
         currentBackGround = if playingEndlessScreen screenState
                             then Scale 2.5 1.5 (b !! 0)
                             else Scale 1.75 1 (b !! (levelIndex `mod` 7))
+        
         currentBossSprite = if isBossAlive (boss)
                             then drawBoss boss
                             else Circle 0
+        
         currentScore = if isBossAlive (boss) 
                        then [Circle 0]
                        else [Color white (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))]
@@ -667,49 +672,54 @@ drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc player
         
 
     in Pictures (currentBackGround :
+    
     Translate x y (Rotate angle2Rotate currentPlayerFrame2) :
+    
     [ let angle = angle2Player (x,y) (ex, ey)
           currentZombieFrame2 = if attacking then zaf !! (zombieAttackingFramesIndex z `mod` length zaf) else currentZombieFrame
           in Color red (Translate ex ey (Rotate (radToDeg ((-1 * angle)) + 90) (if isBoss then Scale 2.0 2.0 currentZombieFrame2 else currentZombieFrame2))) |
           z <- enimies, let (ex,ey) = zPos z, let attacking = isAttacking z, let isBoss = isBossZombie z] ++
 
-    [if heartsThere !! indx
-     then  uncurry Translate pos (Scale 1.5 1.5 (pics !! 1))
-     else uncurry Translate pos (Scale 1.5 1.5 (head pics))
-     | (indx, pos) <- zip [0..] hposs] ++
+    [if heartsThere !! indx then  uncurry Translate pos (Scale 1.5 1.5 (pics !! 1)) else uncurry Translate pos (Scale 1.5 1.5 (head pics)) | (indx, pos) <- zip [0..] hposs] ++
     drawBullets bullets bulletImage ++
     drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
     [Translate 0 0 currentGameOver] ++
     [ drawBone boneAngle bonePic (bx,by) | bone <- zombieBones, let (bx, by) = position bone] ++
-    (drawZombieNames enimies white) ++ [currentBossSprite]
-    ++ currentScore ++ [drawFireBalls boneAngle (bossFireballSprite boss) (fbx, fby) | fb <- (fireBalls boss), let (fbx, fby) = position fb]) 
+    (drawZombieNames enimies white) ++ 
+    [currentBossSprite]++ 
+    currentScore ++ 
+    [drawFireBalls boneAngle (bossFireballSprite boss) (fbx, fby) | fb <- (fireBalls boss), let (fbx, fby) = position fb]) 
 
-
+-- function to draw fire balls
 drawFireBalls :: Float -> Picture -> (Float, Float) -> Picture
 drawFireBalls angle ballPic (bx, by) = ((Translate bx by (Rotate angle ((Scale 0.05 0.05 ((ballPic)))))))
 
+-- function to draw the boss
 drawBoss :: Boss -> Picture
 drawBoss b = Pictures ((Translate (fst(positionB (b)))  (snd(positionB (b))) (Scale 0.20 0.20 (bossPicture (b)))) : [Translate (fst(positionB (b))) (snd(positionB (b))) (Color red (Circle 100))])
 
+-- funciton to draw a bone
 drawBone :: Float -> Picture -> (Float, Float) -> Picture
 drawBone angle bonePic (bx, by) = ((Translate bx by (Rotate angle ((Scale 0.05 0.05 ((bonePic)))))))
 
+-- funciton to draw the zombies names 
 drawZombieNames :: [Zombie] -> Color -> [Picture]
-drawZombieNames zombies clr =  [Color clr (Translate (zx - 50) (zy + 50) (Scale 0.1 0.1 ( (if isBoss then Text "Elite Zombie" else (if rangedZ then Text "Ranged Zombie" else Text "Close Zombie"))))) | z <- zombies, let isBoss = isBossZombie z, let rangedZ = isRangedZombie z, let (zx, zy) = zPos z]
+drawZombieNames zombies clr =  
+    [Color clr (Translate (zx - 50) (zy + 50) (Scale 0.1 0.1 ((if isBoss then Text "Elite Zombie" else (if rangedZ then Text "Ranged Zombie" else Text "Close Zombie"))))) 
+    | z <- zombies, let isBoss = isBossZombie z, let rangedZ = isRangedZombie z, let (zx, zy) = zPos z]
 
-
+-- function to draw bullets
 drawBullets :: [Bullet] -> Picture -> [Picture]
 drawBullets bullets bulletImage =  [Color green (translate x y (Rotate (getRotateBasedUponDir (direction b) + 180) (bulletImage))) | b <- bullets,
                           let (x,y) = position b]
 
 
-
+-- function to remove the hearts that were lost
 removeTheHeartsLost :: [Bool] -> Int -> [Bool]
 removeTheHeartsLost heartsThere newHp = [ newHp > indx  | (indx, isThereAHeart) <- zip [0..] (heartsThere)]
--- updateGame :: ViewPort -> Float -> WorldState -> IO WorldState
--- updateGame _ _ world =  return (moveWorld world)
 
+-- function to map directions to rotations
 getRotateBasedUponDir :: Direction -> Float
 getRotateBasedUponDir (Dir north south east west)
                 | north = 180
@@ -718,9 +728,11 @@ getRotateBasedUponDir (Dir north south east west)
                 | west = 90
                 | otherwise = 0
 
-
+-- function to update the worldstate based upon the screen state
 tempFun :: Float -> WorldState -> WorldState
-tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)
+tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir 
+                    (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver 
+                    gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss)
 
     | health <= 0 = world {isGameOver = True}
     | isGameOver = world
@@ -736,9 +748,11 @@ tempFun steps world@(WorldState (x,y) clr radius b c enimies window timeAcc fram
         (False, False, True) ->
             updateWorldStateDiag steps world
 
+-- function to keep the same world state for dialouge screens
 updateWorldStateDiag :: Float -> WorldState -> WorldState
 updateWorldStateDiag steps ws = ws
 
+-- function to update the world state for the endless mode 
 updateWorldState4Endless :: Float -> WorldState -> WorldState
 updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
     let newTime = (steps + timeAcc)
@@ -869,9 +883,11 @@ updateWorldState4Endless steps (WorldState (x,y) clr radius b c enimies window t
                 (boneAngle + 30)
                 boss
 
+-- function to despawn the bones on the outside
 despawnOutOfBoundsBones :: Float -> Float -> [Bullet] -> [Bullet]
 despawnOutOfBoundsBones height width bones = [b | b <- bones, let (bx,by) = position b, checkBounds (bx,by) height width]
 
+-- check if a position is within the height and width 
 checkBounds :: (Float, Float) -> Float -> Float -> Bool
 checkBounds (bx, by) height width
             | bx < -(width/2) = False
@@ -880,8 +896,12 @@ checkBounds (bx, by) height width
             | by < -(height/2) = False
             | otherwise = True
 
+-- function to update the state for the story mode 
 updateWorldState4Story :: Float -> WorldState -> WorldState
-updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window timeAcc frames i z background kh dir 
+                             (HP health hposs pics heartsThere allheartPictures) psi cw lvls levelIndex isGameOver 
+                             gameOverPic hb zaf screenState knightInfo bulletImage zombieBones score bonePic boneAngle boss) =
+
     let newTime = (steps + timeAcc)
         (newInx, resetTime) = if newTime >= 0.5
                                     then ((i + 1), 0)
@@ -976,15 +996,6 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
           | (null updateZombies3 && not (dialouge screenState) && not (isBossAlive updateBoss2)) = (levelIndex, screenState{dialouge = True, playingStoryScreen = False}, newHp)
           | otherwise = (levelIndex, screenState, newHp)
 
-        -- newZombies = if null updateZombies3 && not (dialouge newScreenState)
-        --                then spawnNewEnemies newLvlIndex
-        --                else updateZombies3
-
-        -- if newLvlIndex > 3 then 
-
-        
-         
-
         checkForCollisions = checkForBulletCollisions (newBulletsPos) updateZombies3
         
         (newBonesL, newHP2) = checkForBulletCollisions2 (newBonesPos) (x,y) newHp1
@@ -1040,13 +1051,15 @@ updateWorldState4Story steps (WorldState (x,y) clr radius b c enimies window tim
                 newBoss20 {fireBalls = newFireBalls1}
  
 
+-- function to update the levels 
 updateLevels ::  [Levels] -> Int -> Levels -> [Levels]
 updateLevels levels indxOfOneToUpdate lvl1 = [if indx == indxOfOneToUpdate then lvl1 else lvl | (indx, lvl) <- zip [0..] levels]
 
+-- function to update the bullets positions
 updateBulletsPos :: [Bullet] -> [Bullet]
 updateBulletsPos bullets = [b {position = (x + vx, y + vy)} | b <- bullets, let (vx, vy) = (velocity b), let (x, y) = (position b)]
 
-
+-- function to check for collisions between zombies and bullets
 checkForBulletCollisions :: [Bullet] -> [Zombie] -> ([Bullet], [Zombie])
 checkForBulletCollisions bullets zombies =
     let hits = [(b, z) | b <- bullets, z <- zombies, distance (position b) (zPos z) < if isBossZombie z then 60 else 30]
@@ -1057,12 +1070,14 @@ checkForBulletCollisions bullets zombies =
         survivingZombies = filter (\z -> zombieHP z > 0) newZombies
     in ([b | b <- bullets, b `notElem` newBullets], survivingZombies)
 
+-- function to check for collisions between the bones and the player
 checkForBulletCollisions2 :: [Bullet] -> (Float, Float) -> Int -> ([Bullet], Int)
 checkForBulletCollisions2 bullets (px, py) playerHp =
     let hits = [(b, playerHp - damagei) | b <- bullets, let damagei = damage b, distance (position b) (px, py) < 30]
         newBullets = [b | (b, _) <- hits]
     in ([b | b <- bullets, b `notElem` newBullets], max 0 playerHp - length hits)
 
+-- function to check for collisions between the bullets and the boss
 checkForBulletCollisions1 :: [Bullet] -> Boss -> ([Bullet], Boss)
 checkForBulletCollisions1 bullets boss =
     let hits = [b | b <- bullets, distance (position b) (positionB boss) < 100]
@@ -1074,11 +1089,11 @@ checkForBulletCollisions1 bullets boss =
 angle2Player :: (Float, Float) -> (Float, Float) -> Float
 angle2Player (px, py) (zx, zy) = atan2 (py - zy) (px - zx)
 
+-- function to update the heart pictures 
 updateAllHeartPics :: [Picture] -> [Bool] -> [Picture] -> [Picture]
 updateAllHeartPics allheartPictures isHeartThere avalibleOptions = [ if x then avalibleOptions !! 1 else avalibleOptions !! 0 | x <- isHeartThere]
 
-
-
+-- function to update the position based upon if keys are held or not
 changePosBasedUponKeyHolds :: (Float, Float) -> KeysHeld -> WindowDimensions -> (Float, Float)
 changePosBasedUponKeyHolds (playerX, playerY) (K isUpHeld isDownHeld isLeftHeld isRightHeld) (Window width height) =
      let
@@ -1130,9 +1145,11 @@ loadInPlayerFrames = sequence [loadBMP ("assets/knightFrame" ++ show x ++ ".bmp"
 loadInHealthFrames :: IO [Picture]
 loadInHealthFrames = sequence [loadBMP ("assets/Heart" ++ show x ++ ".bmp") | x <- [1..2]]
 
+-- function to load in zombie attacking frames
 loadInZombieAttackingFrames :: IO [Picture]
 loadInZombieAttackingFrames = sequence [loadBMP ("assets/zombieAttackFrame" ++ show x ++ ".bmp") | x <- [1..9]]
 
+-- function to load in player attacking frames
 loadInPlayerAttackingFrames :: IO [Picture]
 loadInPlayerAttackingFrames = sequence [loadBMP ("assets/knightAttackFrame" ++ show x ++ ".bmp") | x <- [1..14]]
 
@@ -1140,6 +1157,7 @@ loadInPlayerAttackingFrames = sequence [loadBMP ("assets/knightAttackFrame" ++ s
 loadInHotBarAssets :: IO [Picture]
 loadInHotBarAssets = sequence [loadBMP ("assets/hotBar" ++ show x ++ ".bmp") | x <- [1..2]]
 
+-- function to load in the backgrounds 
 loadInBackGrounds :: IO [Picture]
 loadInBackGrounds = sequence [loadBMP ("assets/backGround" ++ show x ++ ".bmp") | x <- [1..8]]
 
