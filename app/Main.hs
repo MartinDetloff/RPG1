@@ -635,7 +635,7 @@ drawPlayingEndlessScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc play
      else uncurry Translate pos (Scale 1.5 1.5 (head pics))
      | (indx, pos) <- zip [0..] hposs] ++
     drawBullets bullets bulletImage ++
-    drawZombieHitBoxes enimies ++
+    -- drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
     [Translate 0 0 currentGameOver] ++ 
     [Color black (Translate (-125) 300 (Scale 0.5 0.5 (Text (("Score " ++ show score)))))] ++
@@ -682,7 +682,7 @@ drawPlayingStoryScreen (WorldState (x,y) clr radius _ _ enimies w timeAcc player
 
     [if heartsThere !! indx then  uncurry Translate pos (Scale 1.5 1.5 (pics !! 1)) else uncurry Translate pos (Scale 1.5 1.5 (head pics)) | (indx, pos) <- zip [0..] hposs] ++
     drawBullets bullets bulletImage ++
-    drawZombieHitBoxes enimies ++
+    -- drawZombieHitBoxes enimies ++
     [Scale 0.75 0.75 (Translate 0 (-(height w/2) + 25) (hotBarPictures !! hotBarIndex))] ++
     [Translate 0 0 currentGameOver] ++
     [ drawBone boneAngle bonePic (bx,by) | bone <- zombieBones, let (bx, by) = position bone] ++
@@ -697,7 +697,8 @@ drawFireBalls angle ballPic (bx, by) = ((Translate bx by (Rotate angle ((Scale 0
 
 -- function to draw the boss
 drawBoss :: Boss -> Picture
-drawBoss b = Pictures ((Translate (fst(positionB (b)))  (snd(positionB (b))) (Scale 0.20 0.20 (bossPicture (b)))) : [Translate (fst(positionB (b))) (snd(positionB (b))) (Color red (Circle 100))])
+drawBoss b = Pictures [((Translate (fst(positionB (b)))  (snd(positionB (b))) (Scale 0.20 0.20 (bossPicture (b)))))]
+-- : [Translate (fst(positionB (b))) (snd(positionB (b))) (Color red (Circle 100))])
 
 -- funciton to draw a bone
 drawBone :: Float -> Picture -> (Float, Float) -> Picture
